@@ -1,4 +1,4 @@
-name: Android Build & Test
+name: Build Android Apk
 
 on:
   push:
@@ -9,7 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+env:
+FORCE_JAVASCRIPT_ACTIONS_TO_NODE24:true
     steps:
     - name: Checkout the code
       uses: actions/checkout@v4
@@ -22,7 +23,7 @@ jobs:
         cache: gradle
 
     - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+      run: npm install-force
 
     # গুগল ম্যাপস এপিআই কী সেটআপ (যদি আপনি এটি গোপন রাখতে চান)
     - name: Create local.properties
@@ -31,7 +32,7 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew assembleDebug
 
-    - name: Upload APK
+    - name: Buid apk Run on android
       uses: actions/upload-artifact@v4
       with:
         name: RideFuel-Tracker-Debug-APK
