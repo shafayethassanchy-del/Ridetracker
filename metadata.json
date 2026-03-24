@@ -1,0 +1,5 @@
+{
+  "name": "RideFuel Tracker",
+  "description": "A professional trip tracking and fuel cost calculator for bikers.",
+  "requestFramePermissions": ["geolocation"]
+}

@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "Trip": {
+      "title": "Trip",
+      "description": "A recorded bike trip with GPS and fuel data.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "distanceKm": { "type": "number" },
+        "durationSeconds": { "type": "integer" },
+        "fuelLiters": { "type": "number" },
+        "fuelPrice": { "type": "number" },
+        "totalCost": { "type": "number" },
+        "costPerKm": { "type": "number" },
+        "polyline": { "type": "string", "description": "Encoded polyline string" }
+      },
+      "required": ["id", "userId", "date", "distanceKm"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User bike profile and settings.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "bikeName": { "type": "string" },
+        "mileage": { "type": "number", "description": "KM per Liter" }
+      },
+      "required": ["uid"]
+    }
+  },
+  "firestore": {
+    "/trips/{tripId}": {
+      "schema": "Trip",
+      "description": "Collection of all recorded trips."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User specific data."
+    }
+  }
+}
