@@ -47,17 +47,25 @@ class SummaryActivity : AppCompatActivity() {
 
     private fun setupSaveButton() {
         binding.btnSaveTrip.setOnClickListener {
+            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "anonymous"
             val distanceKm = (TrackingService.totalDistance.value ?: 0f) / 1000.0
             val liters = binding.etLiters.text.toString().toDoubleOrNull() ?: 0.0
             val price = binding.etPrice.text.toString().toDoubleOrNull() ?: 0.0
             val (totalCost, costPerKm) = viewModel.calculateMetrics(liters, price, distanceKm)
 
+            // Convert path points to a list of maps for Firestore
+            val pathPoints = TrackingService.pathPoints.value?.map {
+                mapOf("lat" to it.latitude, "lng" to it.longitude)
+            } ?: emptyList()
+
             val trip = Trip(
+                userId = userId,
                 distanceKm = distanceKm,
                 fuelLiters = liters,
                 fuelPrice = price,
                 totalCost = totalCost,
-                costPerKm = costPerKm
+                costPerKm = costPerKm,
+                polyline = pathPoints
             )
 
             viewModel.saveTrip(trip) { success ->

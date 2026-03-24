@@ -50,14 +50,15 @@ export default function App() {
   const [time, setTime] = useState(0);
   const [path, setPath] = useState([]);
   const [currentPos, setCurrentPos] = useState({ lat: 23.8103, lng: 90.4125 });
-  const [fuelConfig, setFuelConfig] = useState({ liters: 5, price: 110 });
+  const [fuelConfig, setFuelConfig] = useState({ liters: 5, price: 110, mileage: 45 });
   const [activeTab, setActiveTab] = useState('home');
+  const [fuelAlert, setFuelAlert] = useState(false);
 
   const timerRef = useRef(null);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: "YOUR_API_KEY_HERE" // In a real app, this would be an env var
+    googleMapsApiKey: "YOUR_API_KEY_HERE"
   });
 
   useEffect(() => {
@@ -72,13 +73,23 @@ export default function App() {
         };
         setCurrentPos(newPos);
         setPath(prev => [...prev, newPos]);
-        setDistance(prev => prev + 0.05); // Simulate 50m movement
+        
+        setDistance(prev => {
+          const newDist = prev + 0.05;
+          // Fuel Low Alert Logic
+          const fuelConsumed = newDist / fuelConfig.mileage;
+          const remainingFuel = fuelConfig.liters - fuelConsumed;
+          if (remainingFuel < 1.0 && !fuelAlert) {
+            setFuelAlert(true);
+          }
+          return newDist;
+        });
       }, 1000);
     } else {
       clearInterval(timerRef.current);
     }
     return () => clearInterval(timerRef.current);
-  }, [isTracking, currentPos]);
+  }, [isTracking, currentPos, fuelConfig, fuelAlert]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -88,9 +99,29 @@ export default function App() {
 
   const totalCost = fuelConfig.liters * fuelConfig.price;
   const costPerKm = distance > 0 ? totalCost / distance : 0;
+  const fuelConsumed = distance / fuelConfig.mileage;
+  const remainingFuel = Math.max(0, fuelConfig.liters - fuelConsumed);
 
   return (
     <div className="flex flex-col h-screen bg-[#121212] text-white font-sans overflow-hidden">
+      {/* Fuel Alert Banner */}
+      <AnimatePresence>
+        {fuelAlert && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-red-600 text-white px-4 py-2 flex items-center justify-between text-sm font-bold z-50"
+          >
+            <div className="flex items-center gap-2">
+              <Fuel className="w-4 h-4 animate-pulse" />
+              <span>FUEL LOW! Estimated {remainingFuel.toFixed(2)}L remaining.</span>
+            </div>
+            <button onClick={() => setFuelAlert(false)} className="text-xs underline">Dismiss</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="p-4 flex items-center justify-between border-b border-white/10 bg-[#1a1a1a]">
         <div className="flex items-center gap-3">
@@ -182,7 +213,17 @@ export default function App() {
                 </div>
 
                 <button 
-                  onClick={() => setIsTracking(!isTracking)}
+                  onClick={() => {
+                    setIsTracking(false);
+                    // Simulate saving the trip with path data
+                    console.log("Saving trip with path:", path);
+                    setActiveTab('history');
+                    // Reset trip data
+                    setDistance(0);
+                    setTime(0);
+                    setPath([]);
+                    setFuelAlert(false);
+                  }}
                   className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-bold text-lg transition-all active:scale-95 ${
                     isTracking 
                     ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)]' 
@@ -233,6 +274,48 @@ export default function App() {
                     <span className="text-2xl font-bold text-[#FFC107]">৳{totalCost}</span>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'profile' && (
+            <motion.div 
+              key="profile"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="p-6 space-y-6"
+            >
+              <h2 className="text-2xl font-bold">Bike Profile</h2>
+              <div className="space-y-4">
+                <div className="bg-[#1e1e1e] p-4 rounded-2xl border border-white/10">
+                  <label className="block text-white/50 text-sm mb-2">Bike Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Yamaha MT-15"
+                    value={fuelConfig.bikeName || ''}
+                    onChange={(e) => setFuelConfig({...fuelConfig, bikeName: e.target.value})}
+                    className="w-full bg-transparent text-xl font-bold outline-none text-white"
+                  />
+                </div>
+                <div className="bg-[#1e1e1e] p-4 rounded-2xl border border-white/10">
+                  <label className="block text-white/50 text-sm mb-2">Mileage (KM/L)</label>
+                  <input 
+                    type="number" 
+                    value={fuelConfig.mileage}
+                    onChange={(e) => setFuelConfig({...fuelConfig, mileage: parseFloat(e.target.value)})}
+                    className="w-full bg-transparent text-2xl font-bold outline-none text-[#FFC107]"
+                  />
+                </div>
+                <button 
+                  onClick={() => {
+                    setActiveTab('home');
+                    // In a real app, this would save to Firestore
+                  }}
+                  className="w-full py-4 bg-[#FFC107] text-black rounded-2xl font-bold shadow-[0_0_20px_rgba(255,193,7,0.3)]"
+                >
+                  Save Profile
+                </button>
               </div>
             </motion.div>
           )}

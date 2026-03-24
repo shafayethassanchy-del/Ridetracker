@@ -65,40 +65,39 @@ class TrackingService : Service() {
         startLocationUpdates()
     }
 
+    private val locationCallback = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            if (isTracking.value == false) return
+
+            for (location in locationResult.locations) {
+                val currentPoints = pathPoints.value ?: mutableListOf()
+                
+                if (currentPoints.isNotEmpty()) {
+                    val lastLocation = currentPoints.last()
+                    
+                    // ১. ডিসটেন্স ক্যালকুলেট করা (Haversine formula style using distanceTo)
+                    val distance = lastLocation.distanceTo(location)
+                    
+                    // ৩. লাইভ স্ট্যাটাস আপডেট করা (Total distance in meters)
+                    val newTotalDistance = (totalDistance.value ?: 0f) + distance
+                    totalDistance.postValue(newTotalDistance)
+                }
+
+                // ২. ম্যাপে পলিলাইন ড্র করার জন্য পয়েন্ট সেভ করা
+                currentPoints.add(location)
+                pathPoints.postValue(currentPoints)
+            }
+        }
+    }
+
     private fun startLocationUpdates() {
-        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
-            .setMinUpdateIntervalMillis(2000)
-            .build()
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000).build()
 
         fusedLocationClient.requestLocationUpdates(
             locationRequest,
             locationCallback,
             Looper.getMainLooper()
         )
-    }
-
-    private val locationCallback = object : LocationCallback() {
-        override fun onLocationResult(result: LocationResult) {
-            super.onLocationResult(result)
-            if (isTracking.value == true) {
-                result.locations.forEach { location ->
-                    updatePathPoints(location)
-                }
-            }
-        }
-    }
-
-    private fun updatePathPoints(location: Location) {
-        val currentPoints = pathPoints.value ?: mutableListOf()
-        
-        if (currentPoints.isNotEmpty()) {
-            val lastLocation = currentPoints.last()
-            val distance = lastLocation.distanceTo(location)
-            totalDistance.postValue((totalDistance.value ?: 0f) + distance)
-        }
-        
-        currentPoints.add(location)
-        pathPoints.postValue(currentPoints)
     }
 
     private fun stopTracking() {
